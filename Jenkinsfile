@@ -1,49 +1,33 @@
 pipeline {
-    agent any
+    agent { label 'docker' }
+
+    environment {
+        REGISTRY_URL = 'nexus:8082'
+        REGISTRY_CREDS = 'nexus-credentials'
+        IMAGE_NAME    = 'myapp'
+    }
     stages {
-        stage('Run only if tag exist') {
-            when {
-                expression {
-                    def tag = sh(script: 'git tag --points-at HEAD', returnStdout: true).trim()
-                    return tag != ''
-                }
-            }
+        stage('Build and Push') {
             steps {
-                catchError {
-                  script {
-                        def tag = sh(
-                            script: 'git tag --points-at HEAD',
-                            returnStdout: true
-                        ).trim()
+                script {
+                    def imageTag = "${env.BUILD_NUMBER}"
 
-                        echo "TAG_NAME is ${tag}"
-                  }
-                }
-            }
-        }
-        stage('Run for tests') {
-            when {
-                expression {
-                    def tag = sh(script: 'git tag --points-at HEAD', returnStdout: true).trim()
-                    return tag == ''
-                }
-            }
-            steps {
-                echo "branch is " + env.GIT_BRANCH
+                    echo "Building Docker image ${IMAGE_NAME}:${imageTag}"
+                    sh "docker build -t ${IMAGE_NAME}:${imageTag} ."
 
+                    echo 'Scanning image with Trivy (HIGH/CRITICAL will fail build)'
+                    sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity HIGH,CRITICAL --exit-code 1 ${IMAGE_NAME}:${imageTag}"
+
+                    echo 'Pushing image to Nexus'
+                    withCredentials([usernamePassword(credentialsId: REGISTRY_CREDS, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                          echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin ${REGISTRY_URL}
+                          docker tag ${IMAGE_NAME}:${imageTag} ${REGISTRY_URL}/${IMAGE_NAME}:${imageTag}
+                          docker push ${REGISTRY_URL}/${IMAGE_NAME}:${imageTag}
+                        '''
+                    }
+                }
             }
         }
     }
 }
-
-// pipeline {
-//   agent any
-//   stages {
-//     stage('Deploy') {
-//       when { buildingTag() }
-//       steps {
-//         sh "echo Deploying tag ${env.TAG_NAME} to production"
-//       }
-//     }
-//   }
-// }

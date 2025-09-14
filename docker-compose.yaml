@@ -25,3 +25,13 @@ services:
       - JENKINS_SECRET=e5078cc56c6758955ad4211b344785a92fd24d26b1907ffb2ef4a979b55b638d
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+
+  nexus:
+    image: sonatype/nexus3
+    container_name: nexus
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+      - "8082:8082"
+    volumes:
+      - ./nexus-data:/nexus-data
