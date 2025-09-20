@@ -9,6 +9,11 @@ pipeline {
         IMAGE_NAME    = 'myapp'
     }
     stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
         stage('Initialize') {
             steps {
                 script {
@@ -45,7 +50,9 @@ pipeline {
 
     post {
         failure {
-            notifyTelegram("Сборка *FAILED* (возможно, уязвимости): ${env.JOB_NAME} #${env.BUILD_NUMBER}\n${env.BUILD_URL}")
+            node {
+                notifyTelegram("Сборка *FAILED* (возможно, уязвимости): ${env.JOB_NAME} #${env.BUILD_NUMBER}\n${env.BUILD_URL}")
+            }
         }
     }
 }
