@@ -18,7 +18,7 @@ pipeline {
         stage('Build and Push') {
             steps {
                 script {
-                    def imageTag = "${env.BUILD_NUMBER}"
+                    def imageTag = env.BUILD_NUMBER ?: 'latest'
 
                     echo "Building Docker image ${IMAGE_NAME}:${imageTag}"
                     sh "docker build -t ${IMAGE_NAME}:${imageTag} ."
