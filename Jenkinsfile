@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'docker' }
+    agent any
 
     environment {
         REGISTRY_URL = 'nexus:8082'
