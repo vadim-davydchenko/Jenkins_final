@@ -18,7 +18,7 @@ pipeline {
         stage('Build and Push') {
             steps {
                 script {
-                    def imageTag = env.BUILD_NUMBER ?: 'latest'
+                    def imageTag = env.BUILD_NUMBER ? "${env.BUILD_NUMBER}" : 'latest'
 
                     echo "Building Docker image ${IMAGE_NAME}:${imageTag}"
                     sh "docker build -t ${IMAGE_NAME}:${imageTag} ."
@@ -28,11 +28,11 @@ pipeline {
 
                     echo 'Pushing image to Nexus'
                     withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh '''
-                          docker login -u $DOCKER_USER --password $DOCKER_PASS http://${REGISTRY_URL}
+                        sh """
+                          docker login -u \$DOCKER_USER --password \$DOCKER_PASS http://${REGISTRY_URL}
                           docker tag ${IMAGE_NAME}:${imageTag} ${REGISTRY_URL}/${IMAGE_NAME}:${imageTag}
                           docker push ${REGISTRY_URL}/${IMAGE_NAME}:${imageTag}
-                        '''
+                        """
                     }
                 }
             }
