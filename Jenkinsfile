@@ -29,7 +29,7 @@ pipeline {
                     echo 'Pushing image to Nexus'
                     withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
-                          docker login -u $DOCKER_USER --password $DOCKER_PASS ${REGISTRY_URL}
+                          docker login -u $DOCKER_USER --password $DOCKER_PASS http://${REGISTRY_URL}
                           docker tag ${IMAGE_NAME}:${imageTag} ${REGISTRY_URL}/${IMAGE_NAME}:${imageTag}
                           docker push ${REGISTRY_URL}/${IMAGE_NAME}:${imageTag}
                         '''
