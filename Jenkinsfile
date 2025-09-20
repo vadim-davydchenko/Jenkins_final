@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        REGISTRY_URL = 'nexus:8082'
+        REGISTRY_URL = 'localhost:8082'
         REGISTRY_CREDS = 'nexus-credentials'
         IMAGE_NAME    = 'myapp'
     }
