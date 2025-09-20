@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent { label 'docker' }
+
+    options { timeout(time: 10, unit: 'MINUTES') }
 
     environment {
         REGISTRY_URL = 'localhost:8082'
@@ -16,9 +18,11 @@ pipeline {
             }
         }
         stage('Build and Push') {
+            when { branch 'develop' }
             steps {
                 script {
-                    def imageTag = env.BUILD_NUMBER ? "${env.BUILD_NUMBER}" : 'latest'
+                    def gitCommit = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    def imageTag = "${gitCommit}-${env.BUILD_NUMBER ?: 'dev'}"
 
                     echo "Building Docker image ${IMAGE_NAME}:${imageTag}"
                     sh "docker build -t ${IMAGE_NAME}:${imageTag} ."
@@ -37,5 +41,26 @@ pipeline {
                 }
             }
         }
+    }
+
+    post {
+        failure {
+            notifyTelegram("Сборка *FAILED* (возможно, уязвимости): ${env.JOB_NAME} #${env.BUILD_NUMBER}\n${env.BUILD_URL}")
+        }
+    }
+}
+
+def notifyTelegram(String message) {
+    withCredentials([
+        string(credentialsId: 'TELEGRAM_BOT_TOKEN', variable: 'TG_TOKEN'),
+        string(credentialsId: 'TELEGRAM_CHAT_ID', variable: 'TG_CHAT_ID')
+    ]) {
+        def encoded = java.net.URLEncoder.encode(message, 'UTF-8')
+        sh """
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+               -d chat_id=${TG_CHAT_ID} \
+               -d parse_mode=Markdown \
+               --data-urlencode "text=${message}"
+        """
     }
 }
