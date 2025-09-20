@@ -7,6 +7,12 @@ pipeline {
         IMAGE_NAME    = 'myapp'
     }
     stages {
+        
+        stage('Initialize'){
+        def dockerHome = tool 'myDocker'
+        env.PATH = "${dockerHome}/bin:${env.PATH}"
+        }
+
         stage('Build and Push') {
             steps {
                 script {
