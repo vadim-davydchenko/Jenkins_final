@@ -27,7 +27,7 @@ pipeline {
                     sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity HIGH,CRITICAL --exit-code 1 ${IMAGE_NAME}:${imageTag}"
 
                     echo 'Pushing image to Nexus'
-                    withCredentials([usernamePassword(credentialsId: nexus-credentials, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                           echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin ${REGISTRY_URL}
                           docker tag ${IMAGE_NAME}:${imageTag} ${REGISTRY_URL}/${IMAGE_NAME}:${imageTag}
