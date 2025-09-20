@@ -17,6 +17,7 @@ services:
     image: jenkins/inbound-agent:jdk17
     container_name: jenkins-agent
     restart: unless-stopped
+    user: root
     depends_on:
       - jenkins
     environment:
