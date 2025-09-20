@@ -50,7 +50,7 @@ pipeline {
 
     post {
         failure {
-            node {
+            node('') {
                 notifyTelegram("Сборка *FAILED* (возможно, уязвимости): ${env.JOB_NAME} #${env.BUILD_NUMBER}\n${env.BUILD_URL}")
             }
         }
