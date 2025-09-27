@@ -41,8 +41,46 @@ pipeline {
                           docker login -u \$DOCKER_USER --password \$DOCKER_PASS http://${REGISTRY_URL}
                           docker tag ${IMAGE_NAME}:${imageTag} ${REGISTRY_URL}/${IMAGE_NAME}:${imageTag}
                           docker push ${REGISTRY_URL}/${IMAGE_NAME}:${imageTag}
+                          docker tag ${IMAGE_NAME}:${imageTag} ${REGISTRY_URL}/${IMAGE_NAME}:develop-latest
+                          docker push ${REGISTRY_URL}/${IMAGE_NAME}:develop-latest
                         """
                     }
+                }
+            }
+        }
+
+        stage('Release') {
+            when { branch 'release' }
+            steps {
+                script {
+                    def releaseTag = "release-${env.BUILD_NUMBER}"
+                    def devImage = "${REGISTRY_URL}/${IMAGE_NAME}:develop-latest"
+
+                    echo "Pulling dev image ${devImage}"
+                    sh "docker pull ${devImage}"
+
+                    echo "Retagging to ${IMAGE_NAME}:${releaseTag}"
+                    sh "docker tag ${devImage} ${REGISTRY_URL}/${IMAGE_NAME}:${releaseTag}"
+                    sh "docker push ${REGISTRY_URL}/${IMAGE_NAME}:${releaseTag}"
+
+                    echo "Deploying container"
+                    sh "docker run -d --name myapp -p 80:80 ${REGISTRY_URL}/${IMAGE_NAME}:${releaseTag}"  // adjust port and command
+
+                    sleep 30  // wait 30s for startup
+
+                    echo "Checking container health"
+                    retry(3) {
+                        sleep 10
+                        sh "curl -f http://localhost:80/health"  // adjust health endpoint
+                    }
+                }
+            }
+            post {
+                success {
+                    notifyTelegram("Релиз *SUCCESS*: ${env.JOB_NAME} #${env.BUILD_NUMBER} (tag: ${releaseTag})\n${env.BUILD_URL}")
+                }
+                failure {
+                    notifyTelegram("Релиз *FAILED*: ${env.JOB_NAME} #${env.BUILD_NUMBER} (tag: ${releaseTag})\n${env.BUILD_URL}")
                 }
             }
         }

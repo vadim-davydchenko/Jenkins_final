@@ -1,3 +1,3 @@
-FROM alpine:3.20
-LABEL maintainer="ci@example.com"
-CMD ["echo", "Hello from Jenkins build"]
+FROM nginx:1.25-alpine
+COPY health.html /usr/share/nginx/html/health
+EXPOSE 80
