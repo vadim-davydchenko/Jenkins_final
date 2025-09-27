@@ -72,7 +72,7 @@ pipeline {
                     echo "Checking container health"
                     retry(3) {
                         sleep 10
-                        sh "curl -f http://localhost:80/health"
+                        sh "docker exec myapp curl -f http://localhost:80/health"
                     }
                 }
             }
