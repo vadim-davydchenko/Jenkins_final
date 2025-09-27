@@ -53,34 +53,35 @@ pipeline {
             when { branch 'release' }
             steps {
                 script {
-                    def releaseTag = "release-${env.BUILD_NUMBER}"
+                    env.RELEASE_TAG = "release-${env.BUILD_NUMBER}"
                     def devImage = "${REGISTRY_URL}/${IMAGE_NAME}:develop-latest"
 
                     echo "Pulling dev image ${devImage}"
                     sh "docker pull ${devImage}"
 
-                    echo "Retagging to ${IMAGE_NAME}:${releaseTag}"
-                    sh "docker tag ${devImage} ${REGISTRY_URL}/${IMAGE_NAME}:${releaseTag}"
-                    sh "docker push ${REGISTRY_URL}/${IMAGE_NAME}:${releaseTag}"
+                    echo "Retagging to ${IMAGE_NAME}:${env.RELEASE_TAG}"
+                    sh "docker tag ${devImage} ${REGISTRY_URL}/${IMAGE_NAME}:${env.RELEASE_TAG}"
+                    sh "docker push ${REGISTRY_URL}/${IMAGE_NAME}:${env.RELEASE_TAG}"
 
                     echo "Deploying container"
-                    sh "docker run -d --name myapp -p 80:80 ${REGISTRY_URL}/${IMAGE_NAME}:${releaseTag}"  // adjust port and command
+                    sh "docker rm -f myapp || true"
+                    sh "docker run -d --name myapp -p 80:80 ${REGISTRY_URL}/${IMAGE_NAME}:${env.RELEASE_TAG}"
 
-                    sleep 30  // wait 30s for startup
+                    sleep 30
 
                     echo "Checking container health"
                     retry(3) {
                         sleep 10
-                        sh "curl -f http://localhost:80/health"  // adjust health endpoint
+                        sh "curl -f http://localhost:80/health"
                     }
                 }
             }
             post {
                 success {
-                    notifyTelegram("Релиз *SUCCESS*: ${env.JOB_NAME} #${env.BUILD_NUMBER} (tag: ${releaseTag})\n${env.BUILD_URL}")
+                    notifyTelegram("Релиз *SUCCESS*: ${env.JOB_NAME} #${env.BUILD_NUMBER} (tag: ${env.RELEASE_TAG})\n${env.BUILD_URL}")
                 }
                 failure {
-                    notifyTelegram("Релиз *FAILED*: ${env.JOB_NAME} #${env.BUILD_NUMBER} (tag: ${releaseTag})\n${env.BUILD_URL}")
+                    notifyTelegram("Релиз *FAILED*: ${env.JOB_NAME} #${env.BUILD_NUMBER} (tag: ${env.RELEASE_TAG})\n${env.BUILD_URL}")
                 }
             }
         }
